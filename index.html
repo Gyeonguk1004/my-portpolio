@@ -152,8 +152,21 @@
   .seg-btn.active[data-val="passed"]{ background:var(--sage-soft); border-color:var(--sage); color:var(--sage); }
   .seg-btn.active[data-val="rejected"]{ background:var(--wine-soft); border-color:var(--wine); color:var(--wine); }
 
-  .stage-row{ display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px dashed var(--line); }
-  .stage-row:last-of-type{ border-bottom:none; }
+  .stage-item{ padding:10px 0; border-bottom:1px dashed var(--line); }
+  .stage-item:last-of-type{ border-bottom:none; }
+  .stage-row{ display:flex; align-items:center; gap:8px; }
+  .stage-feedback-wrap{ margin-top:6px; }
+  .stage-feedback{ width:100%; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; line-height:1.5; resize:vertical; background:#fff; }
+
+  .mode-nav{ display:flex; gap:6px; padding:14px 20px 0; }
+  .mode-tab{ flex:1; background:#fff; border:1px solid var(--line); border-radius:10px; padding:9px 4px; font-size:12px; font-weight:600; color:var(--ink-soft); text-align:center; }
+  .mode-tab.active{ background:var(--navy); border-color:var(--navy); color:#fff; }
+
+  .map-grid-wrap{ padding:10px 20px 4px; overflow-x:auto; }
+  .map-grid{ display:grid; grid-template-columns:repeat(5, 58px); grid-auto-rows:58px; gap:5px; margin:0 auto; width:max-content; }
+  .map-cell{ border:1px solid var(--line); border-radius:9px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; font-weight:700; padding:2px; transition:background .2s ease; }
+  .map-cell.active{ outline:2px solid var(--amber); outline-offset:1px; }
+  .map-cell-count{ font-size:13px; font-weight:900; margin-top:1px; }
   .stage-name{ flex:1.3; border:none; background:transparent; font-weight:600; font-size:14px; padding:6px 4px; border-radius:6px; }
   .stage-name:focus{ background:#fff; box-shadow:0 0 0 1px var(--line) inset; }
   .stage-date{ flex:1; border:1px solid var(--line); border-radius:7px; padding:6px 6px; font-size:12.5px; background:#fff; min-width:0; }
@@ -223,6 +236,68 @@
   var CONFIG_READY = FIREBASE_CONFIG.apiKey.indexOf("YOUR_") !== 0;
 
   var STAGE_PRESETS = ["서류전형","인적성검사","필기시험","1차 면접","2차 면접","임원면접","최종합격"];
+
+  // 2026년 8월 기준 최신 행정구역 (전남광주통합특별시: 2026.7.1 광주+전남 통합, 인천 구 개편 반영)
+  var KOREA_REGIONS = {
+    "서울특별시": ["강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구","동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구","용산구","은평구","종로구","중구","중랑구"],
+    "부산광역시": ["강서구","금정구","남구","동구","동래구","부산진구","북구","사상구","사하구","서구","수영구","연제구","영도구","중구","해운대구","기장군"],
+    "대구광역시": ["중구","동구","서구","남구","북구","수성구","달서구","달성군","군위군"],
+    "인천광역시": ["미추홀구","연수구","남동구","부평구","계양구","서해구","제물포구","영종구","검단구","강화군","옹진군"],
+    "대전광역시": ["동구","중구","서구","유성구","대덕구"],
+    "울산광역시": ["중구","남구","동구","북구","울주군"],
+    "세종특별자치시": ["세종특별자치시"],
+    "경기도": ["수원시","성남시","의정부시","안양시","부천시","광명시","평택시","동두천시","안산시","고양시","과천시","구리시","남양주시","오산시","시흥시","군포시","의왕시","하남시","용인시","파주시","이천시","안성시","김포시","화성시","광주시","양주시","포천시","여주시","연천군","가평군","양평군"],
+    "강원특별자치도": ["춘천시","원주시","강릉시","동해시","태백시","속초시","삼척시","홍천군","횡성군","영월군","평창군","정선군","철원군","화천군","양구군","인제군","고성군","양양군"],
+    "충청북도": ["청주시","충주시","제천시","보은군","옥천군","영동군","증평군","진천군","괴산군","음성군","단양군"],
+    "충청남도": ["천안시","공주시","보령시","아산시","서산시","논산시","계룡시","당진시","금산군","부여군","서천군","청양군","홍성군","예산군","태안군"],
+    "전북특별자치도": ["전주시","군산시","익산시","정읍시","남원시","김제시","완주군","진안군","무주군","장수군","임실군","순창군","고창군","부안군"],
+    "전남광주통합특별시": ["목포시","여수시","순천시","나주시","광양시","담양군","곡성군","구례군","고흥군","보성군","화순군","장흥군","강진군","해남군","영암군","무안군","함평군","영광군","장성군","완도군","진도군","신안군","동구","서구","남구","북구","광산구"],
+    "경상북도": ["포항시","경주시","김천시","안동시","구미시","영주시","영천시","상주시","문경시","경산시","의성군","청송군","영양군","영덕군","청도군","고령군","성주군","칠곡군","예천군","봉화군","울진군","울릉군"],
+    "경상남도": ["창원시","진주시","통영시","사천시","김해시","밀양시","거제시","양산시","의령군","함안군","창녕군","고성군","남해군","하동군","산청군","함양군","거창군","합천군"],
+    "제주특별자치도": ["제주시","서귀포시"]
+  };
+  var KOREA_SIDO_LIST = Object.keys(KOREA_REGIONS);
+  var SIDO_GRID = [
+    {name:"강원특별자치도", short:"강원", row:0, col:2},
+    {name:"인천광역시", short:"인천", row:1, col:0},
+    {name:"서울특별시", short:"서울", row:1, col:1},
+    {name:"경기도", short:"경기", row:1, col:2},
+    {name:"충청남도", short:"충남", row:2, col:1},
+    {name:"충청북도", short:"충북", row:2, col:2},
+    {name:"경상북도", short:"경북", row:2, col:3},
+    {name:"세종특별자치시", short:"세종", row:3, col:1},
+    {name:"대전광역시", short:"대전", row:3, col:2},
+    {name:"대구광역시", short:"대구", row:3, col:3},
+    {name:"전북특별자치도", short:"전북", row:4, col:1},
+    {name:"울산광역시", short:"울산", row:4, col:3},
+    {name:"전남광주통합특별시", short:"전남광주", row:5, col:1},
+    {name:"경상남도", short:"경남", row:5, col:3},
+    {name:"부산광역시", short:"부산", row:5, col:4},
+    {name:"제주특별자치도", short:"제주", row:7, col:2}
+  ];
+  function sidoOptionsHtml(selected){
+    return '<option value="">선택</option>' + KOREA_SIDO_LIST.map(function(s){
+      return '<option value="'+escapeHtml(s)+'"'+(s===selected?" selected":"")+'>'+escapeHtml(s)+'</option>';
+    }).join("");
+  }
+  function sigunguOptionsHtml(sido, selected){
+    var options = KOREA_REGIONS[sido] || [];
+    if(!options.length) return '<option value="">시/도를 먼저 선택하세요</option>';
+    return '<option value="">선택</option>' + options.map(function(g){
+      return '<option value="'+escapeHtml(g)+'"'+(g===selected?" selected":"")+'>'+escapeHtml(g)+'</option>';
+    }).join("");
+  }
+  function populateSigunguSelect(selectEl, sido, selectedValue){
+    selectEl.disabled = !sido;
+    selectEl.innerHTML = sigunguOptionsHtml(sido, selectedValue);
+  }
+  function regionColor(count, max){
+    if(!count) return "var(--paper-deep)";
+    var ratio = max > 0 ? count / max : 0;
+    if(ratio > 0.66) return "#2C3A54";
+    if(ratio > 0.33) return "#6B7FA3";
+    return "#B7C4D9";
+  }
 
   var PORTFOLIO_ORDER = ["education","career","certificates","languages","activities","conferences","publications","awards"];
   var PORTFOLIO_SCHEMAS = {
@@ -311,7 +386,10 @@
     saveStatus: "idle",
     addError: "",
     newJobType: "",
-    newEmploymentType: ""
+    newEmploymentType: "",
+    newSido: "",
+    stageFeedbackOpen: {},
+    mapSelectedSido: ""
   };
 
   // ---------- utils ----------
@@ -331,6 +409,7 @@
       id: uid(), company: company, position: position, appliedDate: appliedDate || todayStr(),
       status: "in_progress",
       jobType: "", employmentType: "",
+      sido: "", sigungu: "",
       stages: [],
       rejection: { stageName:"", date:"", reason:"", memo:"" },
       coverLetters: [],
@@ -510,6 +589,7 @@
     auth.signOut().then(function(){
       state.authed = false; state.userId = ""; state.firebaseUser = null; state.apps = [];
       state.portfolio = emptyPortfolio(); state.portfolioEditing = {}; state.mode = "jobs";
+      state.stageFeedbackOpen = {}; state.mapSelectedSido = "";
       state.loginError = ""; state.view = "list"; state.filter = "all"; state.currentId = null;
       render();
     });
@@ -581,16 +661,25 @@
   }
 
   // ---------- render ----------
+  function renderModeNav(){
+    var items = [["jobs","지원한 직장"], ["map","지원한 직장 지도"], ["portfolio","나의 포트폴리오"]];
+    return '<div class="mode-nav">' + items.map(function(it){
+      var active = state.mode === it[0];
+      return '<button class="mode-tab'+(active?' active':'')+'" data-action="set-mode" data-mode="'+it[0]+'">'+it[1]+'</button>';
+    }).join("") + '</div>';
+  }
+
   function render(){
     var root = document.getElementById("app");
     if(!CONFIG_READY){ root.innerHTML = renderSetupNeeded(); renderModal(); return; }
     if(state.sdkError){ root.innerHTML = renderSdkError(); renderModal(); return; }
     if(state.loading){ root.innerHTML = '<div class="loading">'+(state.authed ? '지원 기록을 불러오는 중...' : '로그인 확인 중...')+'</div>'; renderModal(); return; }
     if(!state.authed){ root.innerHTML = renderLogin(); renderModal(); return; }
-    if(state.mode === "portfolio"){ root.innerHTML = renderPortfolio(); renderModal(); updateSaveIndicator(); return; }
+    if(state.mode === "portfolio"){ root.innerHTML = renderModeNav() + renderPortfolio(); renderModal(); updateSaveIndicator(); return; }
+    if(state.mode === "map"){ root.innerHTML = renderModeNav() + renderJobMap(); renderModal(); return; }
     if(state.view === "add") root.innerHTML = renderAdd();
     else if(state.view === "detail") root.innerHTML = renderDetail(getApp(state.currentId));
-    else root.innerHTML = renderList();
+    else root.innerHTML = renderModeNav() + renderList();
     renderModal();
     updateSaveIndicator();
   }
@@ -659,7 +748,6 @@
       +   '<div class="brand"><h1>지원노트</h1><p>'+escapeHtml(state.userId)+' 님의 기록 · 회사, 직무, 전형 단계까지</p></div>'
       +   '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">'
       +     '<button class="btn btn-primary" data-action="go-add">+ 새 지원</button>'
-      +     '<button class="btn btn-ghost btn-sm" data-action="go-portfolio">마이 포트폴리오</button>'
       +     '<button class="link-sm" data-action="logout">로그아웃</button>'
       +   '</div>'
       + '</div>'
@@ -674,6 +762,7 @@
     var stageText = lastStage ? ('최근 단계: ' + escapeHtml(lastStage.name) + ' · ' + stageResultLabel(lastStage.result)) : "아직 전형 단계 없음";
     var tags = [jobTypeLabel(a.jobType), employmentTypeLabel(a.employmentType)].filter(Boolean);
     var tagRow = tags.length ? ('<div class="tag-row">' + tags.map(function(t){ return '<span class="tag">'+t+'</span>'; }).join("") + '</div>') : "";
+    var regionText = a.sido ? ('📍 '+escapeHtml(a.sido)+(a.sigungu?' '+escapeHtml(a.sigungu):'')) : "";
     return ''
       + '<button class="card" data-action="go-detail" data-id="'+a.id+'">'
       +   '<div class="card-main">'
@@ -681,6 +770,7 @@
       +     '<p class="card-position">'+escapeHtml(a.position||"직무 미정")+'</p>'
       +     tagRow
       +     '<p class="card-meta">지원일 '+fmtDate(a.appliedDate)+'</p>'
+      +     (regionText ? '<p class="card-meta">'+regionText+'</p>' : "")
       +     '<p class="card-stage">'+stageText+'</p>'
       +   '</div>'
       +   '<div class="stamp stamp-sm '+a.status+'">'+statusLabel(a.status)+'</div>'
@@ -702,11 +792,16 @@
       +   '<div class="field"><label>직무</label><input type="text" id="newPosition" placeholder="예: 시스템설계직"></div>'
       +   '<div class="field"><label>지원일</label><input type="date" id="newDate" value="'+todayStr()+'"></div>'
       +   '<div class="field-row">'
+      +     '<div class="field"><label>시/도</label><select id="newSido" data-role="new-sido-select">'+sidoOptionsHtml(state.newSido)+'</select></div>'
+      +     '<div class="field"><label>시/군/구</label><select id="newSigungu"'+(state.newSido?'':' disabled')+'>'+sigunguOptionsHtml(state.newSido, "")+'</select></div>'
+      +   '</div>'
+      +   '<div class="field-row">'
       +     '<div class="field"><label>직군</label><div class="segmented small">'+jobSeg+'</div></div>'
       +     '<div class="field"><label>고용형태</label><div class="segmented small">'+empSeg+'</div></div>'
       +   '</div>'
       +   (state.addError ? '<p class="error-text">'+escapeHtml(state.addError)+'</p>' : '')
-      +   '<button class="btn btn-primary" data-action="confirm-add" style="width:100%;margin-top:6px;">추가하고 계속 작성하기</button>'
+      +   '<button class="btn btn-ghost" data-action="confirm-add" data-then="list" style="width:100%;margin-top:6px;">저장 후 목록으로</button>'
+      +   '<button class="btn btn-primary" data-action="confirm-add" data-then="detail" style="width:100%;margin-top:8px;">저장 및 추가 작성</button>'
       + '</div>';
   }
 
@@ -723,14 +818,21 @@
     }).join("");
 
     var stageRows = a.stages.map(function(st){
+      var feedbackOpen = !!st.feedback || !!state.stageFeedbackOpen[st.id];
+      var feedbackHtml = feedbackOpen
+        ? '<textarea class="stage-feedback" rows="2" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="feedback" placeholder="이 단계에서 느낀 점을 자유롭게 적어보세요 (선택)">'+escapeHtml(st.feedback||"")+'</textarea>'
+        : '<button class="chip" data-action="toggle-stage-feedback" data-stage="'+st.id+'">+ 느낀 점 추가</button>';
       return ''
-        + '<div class="stage-row">'
-        +   '<input class="stage-name" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="name" value="'+escapeHtml(st.name)+'">'
-        +   '<input class="stage-date" type="date" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="date" value="'+escapeHtml(st.date||"")+'">'
-        +   '<select class="stage-result" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="result">'
-        +     ["pending","pass","fail"].map(function(r){ return '<option value="'+r+'"'+(st.result===r?" selected":"")+'>'+stageResultLabel(r)+'</option>'; }).join("")
-        +   '</select>'
-        +   '<button class="btn-icon" data-action="delete-stage" data-id="'+a.id+'" data-stage="'+st.id+'" title="삭제">×</button>'
+        + '<div class="stage-item">'
+        +   '<div class="stage-row">'
+        +     '<input class="stage-name" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="name" value="'+escapeHtml(st.name)+'">'
+        +     '<input class="stage-date" type="date" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="date" value="'+escapeHtml(st.date||"")+'">'
+        +     '<select class="stage-result" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="result">'
+        +       ["pending","pass","fail"].map(function(r){ return '<option value="'+r+'"'+(st.result===r?" selected":"")+'>'+stageResultLabel(r)+'</option>'; }).join("")
+        +     '</select>'
+        +     '<button class="btn-icon" data-action="delete-stage" data-id="'+a.id+'" data-stage="'+st.id+'" title="삭제">×</button>'
+        +   '</div>'
+        +   '<div class="stage-feedback-wrap">'+feedbackHtml+'</div>'
         + '</div>';
     }).join("");
 
@@ -766,6 +868,10 @@
       +   '<div class="field"><label>회사명</label><input type="text" data-app="'+a.id+'" data-field="company" value="'+escapeHtml(a.company)+'"></div>'
       +   '<div class="field"><label>직무</label><input type="text" data-app="'+a.id+'" data-field="position" value="'+escapeHtml(a.position)+'"></div>'
       +   '<div class="field"><label>지원일</label><input type="date" data-app="'+a.id+'" data-field="appliedDate" value="'+escapeHtml(a.appliedDate||"")+'"></div>'
+      +   '<div class="field-row">'
+      +     '<div class="field"><label>시/도</label><select data-role="detail-sido-select" data-app="'+a.id+'">'+sidoOptionsHtml(a.sido)+'</select></div>'
+      +     '<div class="field"><label>시/군/구</label><select id="sigungu-select-'+a.id+'" data-app="'+a.id+'" data-field="sigungu"'+(a.sido?'':' disabled')+'>'+sigunguOptionsHtml(a.sido, a.sigungu)+'</select></div>'
+      +   '</div>'
       +   '<div class="field-row">'
       +     '<div class="field"><label>직군</label><div class="segmented small">'+jobSeg+'</div></div>'
       +     '<div class="field"><label>고용형태</label><div class="segmented small">'+empSeg+'</div></div>'
@@ -829,10 +935,6 @@
     }).join("");
 
     return ''
-      + '<div class="header-row">'
-      +   '<button class="btn-icon" data-action="go-jobs">← 지원 현황</button>'
-      +   '<span></span>'
-      + '</div>'
       + '<div class="topbar" style="border-bottom:none;padding-bottom:4px;">'
       +   '<div class="brand"><h1 style="font-size:22px;">마이 포트폴리오</h1><p>학력·경력·자격증·어학·대외활동·학술대회·논문·수상을 한 곳에</p></div>'
       + '</div>'
@@ -909,6 +1011,64 @@
     return fieldsHtml + fileHtml;
   }
 
+  function renderJobMap(){
+    var counts = {};
+    state.apps.forEach(function(a){ if(a.sido){ counts[a.sido] = (counts[a.sido]||0)+1; } });
+    var maxCount = 0;
+    Object.keys(counts).forEach(function(k){ if(counts[k] > maxCount) maxCount = counts[k]; });
+
+    var cellsHtml = SIDO_GRID.map(function(r){
+      var count = counts[r.name] || 0;
+      var bg = regionColor(count, maxCount);
+      var ratio = maxCount > 0 ? count / maxCount : 0;
+      var textColor = count > 0 ? (ratio > 0.33 ? "#fff" : "var(--ink)") : "var(--ink-faint)";
+      var active = state.mapSelectedSido === r.name;
+      return '<button class="map-cell'+(active?' active':'')+'" data-action="select-map-region" data-sido="'+escapeHtml(r.name)+'" '
+        + 'style="grid-column:'+(r.col+1)+';grid-row:'+(r.row+1)+';background:'+bg+';color:'+textColor+';">'
+        + '<span>'+r.short+'</span>'
+        + (count ? '<span class="map-cell-count">'+count+'</span>' : '')
+        + '</button>';
+    }).join("");
+
+    var detailHtml;
+    var selected = state.mapSelectedSido;
+    if(selected){
+      var appsInRegion = state.apps.filter(function(a){ return a.sido === selected; });
+      var bySigungu = {};
+      appsInRegion.forEach(function(a){ var g = a.sigungu || "미지정"; bySigungu[g] = (bySigungu[g]||0)+1; });
+      var sigunguTags = Object.keys(bySigungu).map(function(g){
+        return '<span class="tag">'+escapeHtml(g)+' '+bySigungu[g]+'</span>';
+      }).join("");
+      var companyList = appsInRegion.length
+        ? '<div class="list" style="padding:12px 0 0;">' + appsInRegion.map(function(a){
+            return ''
+              + '<button class="card" data-action="go-detail-from-map" data-id="'+a.id+'">'
+              +   '<div class="card-main">'
+              +     '<p class="card-company">'+escapeHtml(a.company||"회사명 미정")+'</p>'
+              +     '<p class="card-position">'+escapeHtml(a.position||"")+(a.sigungu?' · '+escapeHtml(a.sigungu):'')+'</p>'
+              +   '</div>'
+              +   '<div class="stamp stamp-sm '+a.status+'">'+statusLabel(a.status)+'</div>'
+              + '</button>';
+          }).join("") + '</div>'
+        : '<p class="hint">이 지역에 등록된 지원이 없어요.</p>';
+      detailHtml = ''
+        + '<div class="section">'
+        +   '<p class="eyebrow">'+escapeHtml(selected)+' ('+appsInRegion.length+'건)</p>'
+        +   (sigunguTags ? '<div class="tag-row">'+sigunguTags+'</div>' : '')
+        +   companyList
+        + '</div>';
+    } else {
+      detailHtml = '<div class="section"><p class="hint">지역을 눌러보면 그 지역에 지원한 회사 목록이 보여요. 지원할 때 지역(시/도, 시/군/구)을 선택해두면 여기 표시돼요.</p></div>';
+    }
+
+    return ''
+      + '<div class="topbar" style="border-bottom:none;padding-bottom:4px;">'
+      +   '<div class="brand"><h1 style="font-size:22px;">지원한 직장 지도</h1><p>지역별로 몇 곳에 지원했는지 한눈에 봐요</p></div>'
+      + '</div>'
+      + '<div class="map-grid-wrap"><div class="map-grid">'+cellsHtml+'</div></div>'
+      + detailHtml;
+  }
+
   function renderModal(){
     var root = document.getElementById("modalRoot");
     if(!state.confirm){ root.innerHTML = ""; return; }
@@ -953,6 +1113,24 @@
   function handleFieldEvent(e){
     var el = e.target;
     if(!el.getAttribute) return;
+    var role = el.getAttribute("data-role");
+    if(role === "new-sido-select"){
+      state.newSido = el.value;
+      var newSigunguEl = document.getElementById("newSigungu");
+      if(newSigunguEl) populateSigunguSelect(newSigunguEl, el.value, "");
+      return;
+    }
+    if(role === "detail-sido-select"){
+      var dsAppId = el.getAttribute("data-app");
+      var dsApp = getApp(dsAppId);
+      if(dsApp){
+        dsApp.sido = el.value; dsApp.sigungu = ""; dsApp.updatedAt = Date.now();
+        markDirty();
+      }
+      var sigunguSelEl = document.getElementById("sigungu-select-"+dsAppId);
+      if(sigunguSelEl) populateSigunguSelect(sigunguSelEl, el.value, "");
+      return;
+    }
     if(el.getAttribute("data-file-upload")){
       handlePortfolioFileSelect(el);
       return;
@@ -1003,7 +1181,7 @@
     else if(action === "logout"){ doLogout(); }
     else if(action === "forgot-password"){ requestPasswordReset(); }
     else if(action === "google-login"){ signInWithGoogle(); }
-    else if(action === "go-add"){ state.view = "add"; state.addError = ""; state.newJobType = ""; state.newEmploymentType = ""; render(); }
+    else if(action === "go-add"){ state.view = "add"; state.addError = ""; state.newJobType = ""; state.newEmploymentType = ""; state.newSido = ""; render(); }
     else if(action === "go-list"){
       if(state.view === "detail" && state.saveStatus === "dirty") saveApps();
       state.view = "list"; render();
@@ -1011,10 +1189,22 @@
     else if(action === "go-detail"){ state.view = "detail"; state.currentId = id; state.saveStatus = "idle"; render(); }
     else if(action === "set-filter"){ state.filter = el.getAttribute("data-filter"); render(); }
 
-    else if(action === "go-portfolio"){ state.mode = "portfolio"; state.saveStatus = "idle"; render(); }
-    else if(action === "go-jobs"){
+    else if(action === "set-mode"){
+      var newMode = el.getAttribute("data-mode");
       if(state.mode === "portfolio" && state.saveStatus === "dirty") savePortfolio();
-      state.mode = "jobs"; state.view = "list"; state.saveStatus = "idle";
+      state.mode = newMode;
+      if(newMode === "jobs") state.view = "list";
+      state.mapSelectedSido = "";
+      state.saveStatus = "idle";
+      render();
+    }
+    else if(action === "select-map-region"){
+      var mSido = el.getAttribute("data-sido");
+      state.mapSelectedSido = (state.mapSelectedSido === mSido) ? "" : mSido;
+      render();
+    }
+    else if(action === "go-detail-from-map"){
+      state.mode = "jobs"; state.view = "detail"; state.currentId = id; state.saveStatus = "idle";
       render();
     }
     else if(action === "add-portfolio-entry"){
@@ -1071,8 +1261,15 @@
       if(!company || !position){ state.addError = "회사명과 직무는 꼭 입력해주세요."; render(); return; }
       var a = newApp(company, position, dateVal);
       a.jobType = state.newJobType; a.employmentType = state.newEmploymentType;
+      var newSidoEl = document.getElementById("newSido");
+      var newSigunguEl = document.getElementById("newSigungu");
+      a.sido = newSidoEl ? newSidoEl.value : "";
+      a.sigungu = newSigunguEl ? newSigunguEl.value : "";
       state.apps.push(a);
-      state.currentId = a.id; state.view = "detail"; state.addError = "";
+      state.addError = "";
+      var then = el.getAttribute("data-then");
+      if(then === "list"){ state.view = "list"; state.currentId = null; }
+      else { state.currentId = a.id; state.view = "detail"; }
       render(); saveApps();
     }
 
@@ -1107,14 +1304,14 @@
     else if(action === "add-stage-preset"){
       var app2 = getApp(id);
       if(!app2) return;
-      app2.stages.push({ id: uid(), name: el.getAttribute("data-name"), date: todayStr(), result: "pending" });
+      app2.stages.push({ id: uid(), name: el.getAttribute("data-name"), date: todayStr(), result: "pending", feedback: "" });
       app2.updatedAt = Date.now();
       render(); saveApps();
     }
     else if(action === "add-stage-custom"){
       var app3 = getApp(id);
       if(!app3) return;
-      app3.stages.push({ id: uid(), name: "새 단계", date: todayStr(), result: "pending" });
+      app3.stages.push({ id: uid(), name: "새 단계", date: todayStr(), result: "pending", feedback: "" });
       app3.updatedAt = Date.now();
       render(); saveApps();
     }
@@ -1124,6 +1321,10 @@
       app4.stages = app4.stages.filter(function(s){ return s.id !== el.getAttribute("data-stage"); });
       app4.updatedAt = Date.now();
       render(); saveApps();
+    }
+    else if(action === "toggle-stage-feedback"){
+      state.stageFeedbackOpen[el.getAttribute("data-stage")] = true;
+      render();
     }
 
     else if(action === "add-cl"){
