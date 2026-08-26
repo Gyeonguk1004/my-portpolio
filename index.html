@@ -301,15 +301,22 @@
 
   var PORTFOLIO_ORDER = ["education","career","certificates","languages","activities","conferences","publications","awards"];
   var PORTFOLIO_SCHEMAS = {
-    education: { label:"학력", fields:[
-      {key:"school", label:"학교명", type:"text", placeholder:"예: 경북대학교"},
-      {key:"major", label:"전공", type:"text", placeholder:"예: 건설환경에너지공학부"},
-      {key:"degree", label:"학위", type:"select", options:["고등학교","전문학사","학사","석사","박사"]},
-      {key:"status", label:"상태", type:"select", options:["졸업","재학","휴학","수료","중퇴"]},
-      {key:"startDate", label:"입학일", type:"date"},
-      {key:"endDate", label:"졸업(예정)일", type:"date"},
-      {key:"note", label:"비고 (선택)", type:"text", placeholder:"예: 학점 4.2/4.5"}
-    ]},
+    education: { label:"학력", fields: function(entry){
+      var fields = [
+        {key:"degree", label:"학위", type:"select", options:["고등학교","전문학사","학사","석사","박사"]}
+      ];
+      if(entry.degree === "고등학교"){
+        fields.push({key:"hsType", label:"고등학교 종류", type:"select", options:["일반고등학교","특성화고등학교","특수목적고등학교","자율고등학교","기타"]});
+      } else {
+        fields.push({key:"major", label:"전공", type:"text", placeholder:"예: 건설환경에너지공학부"});
+      }
+      fields.push({key:"school", label:"학교명", type:"text", placeholder:"예: 경북대학교"});
+      fields.push({key:"status", label:"상태", type:"select", options:["졸업","재학","휴학","수료","중퇴"]});
+      fields.push({key:"startDate", label:"입학일", type:"date"});
+      fields.push({key:"endDate", label:"졸업(예정)일", type:"date"});
+      fields.push({key:"note", label:"비고 (선택)", type:"text", placeholder:"예: 학점 4.2/4.5"});
+      return fields;
+    }},
     career: { label:"경력", fields:[
       {key:"org", label:"기관/회사명", type:"text", placeholder:"예: 한국환경연구원"},
       {key:"position", label:"직무/직급", type:"text", placeholder:"예: 위촉연구원"},
@@ -362,10 +369,18 @@
     PORTFOLIO_ORDER.forEach(function(cat){ p[cat] = []; });
     return p;
   }
+  function schemaFields(schema, entry){
+    return typeof schema.fields === "function" ? schema.fields(entry) : schema.fields;
+  }
   function newPortfolioEntry(cat){
     var obj = { id: uid(), fileUrl:"", fileName:"", filePath:"" };
-    PORTFOLIO_SCHEMAS[cat].fields.forEach(function(f){ obj[f.key] = ""; });
+    schemaFields(PORTFOLIO_SCHEMAS[cat], obj).forEach(function(f){ obj[f.key] = ""; });
     return obj;
+  }
+  var EDUCATION_DEGREE_ORDER = ["고등학교","전문학사","학사","석사","박사"];
+  function educationSortRank(entry){
+    var idx = EDUCATION_DEGREE_ORDER.indexOf(entry.degree);
+    return idx === -1 ? EDUCATION_DEGREE_ORDER.length : idx;
   }
 
   var state = {
@@ -932,7 +947,10 @@
   function renderPortfolio(){
     var sectionsHtml = PORTFOLIO_ORDER.map(function(cat){
       var schema = PORTFOLIO_SCHEMAS[cat];
-      var entries = state.portfolio[cat] || [];
+      var entries = (state.portfolio[cat] || []).slice();
+      if(cat === "education"){
+        entries.sort(function(a,b){ return educationSortRank(a) - educationSortRank(b); });
+      }
       var listHtml = entries.length
         ? entries.map(function(entry){ return renderPortfolioCard(cat, schema, entry); }).join("")
         : '<p class="hint" style="padding:0 0 12px;">아직 등록된 '+schema.label+' 항목이 없어요.</p>';
@@ -969,7 +987,7 @@
   }
 
   function renderPortfolioCardView(schema, entry){
-    var rows = schema.fields.map(function(f){
+    var rows = schemaFields(schema, entry).map(function(f){
       var val = entry[f.key];
       if(!val) return "";
       var displayVal = f.type === "date" ? fmtDate(val) : escapeHtml(val);
@@ -983,7 +1001,7 @@
   }
 
   function renderPortfolioCardEdit(cat, schema, entry){
-    var fieldsHtml = schema.fields.map(function(f){
+    var fieldsHtml = schemaFields(schema, entry).map(function(f){
       var val = entry[f.key] || "";
       var inputHtml;
       if(f.type === "select"){
@@ -1154,6 +1172,7 @@
       if(!entry) return;
       entry[field] = el.value;
       markDirty();
+      if(portfolioCat === "education" && field === "degree"){ render(); }
       return;
     }
     if(!el.getAttribute("data-field")) return;
