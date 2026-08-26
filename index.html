@@ -98,10 +98,10 @@
   @keyframes rise{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
   @media (prefers-reduced-motion: reduce){ .card{ animation:none; } }
   .card-main{ min-width:0; }
-  .card-company{ font-family:var(--serif); font-weight:700; font-size:16px; margin:0 0 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .card-position{ margin:0 0 8px; color:var(--ink-soft); font-size:13.5px; }
-  .card-meta{ margin:0; font-size:12.5px; color:var(--ink-faint); font-family:var(--mono); }
-  .card-stage{ margin-top:6px; font-size:12.5px; color:var(--ink-soft); }
+  .card-company{ font-family:var(--sans); font-weight:700; font-size:15.5px; margin:0 0 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .card-position-inline{ font-weight:500; color:var(--ink-soft); font-size:14px; }
+  .card-meta{ margin:0 0 3px; font-size:12.5px; color:var(--ink-soft); font-family:var(--sans); }
+  .card-meta:last-child{ margin-bottom:0; }
   .tag-row{ margin:2px 0 8px; }
   .tag{ display:inline-block; font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; background:var(--paper-deep); color:var(--ink-soft); margin-right:6px; }
 
@@ -400,6 +400,12 @@
   function getApp(id){ return state.apps.find(function(a){ return a.id === id; }); }
   function statusLabel(s){ return s==="passed" ? "합격" : s==="rejected" ? "불합격" : "진행중"; }
   function stageResultLabel(r){ return r==="pass" ? "통과" : r==="fail" ? "탈락" : "대기중"; }
+  function nextScheduleText(app){
+    var pending = app.stages.filter(function(s){ return s.result === "pending" && s.date; });
+    if(!pending.length) return "";
+    pending.sort(function(a,b){ return (a.date||"").localeCompare(b.date||""); });
+    return pending[0].name + " · " + fmtDate(pending[0].date);
+  }
   function jobTypeLabel(v){ return v==="research" ? "연구직" : v==="office" ? "사무직" : ""; }
   function employmentTypeLabel(v){ return v==="regular" ? "정규직" : v==="contract" ? "계약직" : ""; }
 
@@ -758,20 +764,25 @@
   }
 
   function renderCard(a){
-    var lastStage = a.stages.length ? a.stages[a.stages.length-1] : null;
-    var stageText = lastStage ? ('최근 단계: ' + escapeHtml(lastStage.name) + ' · ' + stageResultLabel(lastStage.result)) : "아직 전형 단계 없음";
-    var tags = [jobTypeLabel(a.jobType), employmentTypeLabel(a.employmentType)].filter(Boolean);
-    var tagRow = tags.length ? ('<div class="tag-row">' + tags.map(function(t){ return '<span class="tag">'+t+'</span>'; }).join("") + '</div>') : "";
-    var regionText = a.sido ? ('📍 '+escapeHtml(a.sido)+(a.sigungu?' '+escapeHtml(a.sigungu):'')) : "";
+    var titleLine = '<span class="card-company-name">'+escapeHtml(a.company||"회사명 미정")+'</span>'
+      + (a.position ? ' <span class="card-position-inline">· '+escapeHtml(a.position)+'</span>' : '');
+
+    var extraHtml = "";
+    if(a.status !== "rejected"){
+      var tags = [jobTypeLabel(a.jobType), employmentTypeLabel(a.employmentType)].filter(Boolean);
+      var tagRow = tags.length ? ('<div class="tag-row">' + tags.map(function(t){ return '<span class="tag">'+t+'</span>'; }).join("") + '</div>') : "";
+      var regionText = a.sido ? ('지역: '+escapeHtml(a.sido)+(a.sigungu?' '+escapeHtml(a.sigungu):'')) : "";
+      var nextText = nextScheduleText(a);
+      extraHtml = tagRow
+        + (regionText ? '<p class="card-meta">'+regionText+'</p>' : "")
+        + (nextText ? '<p class="card-meta">다음 일정: '+nextText+'</p>' : "");
+    }
+
     return ''
       + '<button class="card" data-action="go-detail" data-id="'+a.id+'">'
       +   '<div class="card-main">'
-      +     '<p class="card-company">'+escapeHtml(a.company||"회사명 미정")+'</p>'
-      +     '<p class="card-position">'+escapeHtml(a.position||"직무 미정")+'</p>'
-      +     tagRow
-      +     '<p class="card-meta">지원일 '+fmtDate(a.appliedDate)+'</p>'
-      +     (regionText ? '<p class="card-meta">'+regionText+'</p>' : "")
-      +     '<p class="card-stage">'+stageText+'</p>'
+      +     '<p class="card-company">'+titleLine+'</p>'
+      +     extraHtml
       +   '</div>'
       +   '<div class="stamp stamp-sm '+a.status+'">'+statusLabel(a.status)+'</div>'
       + '</button>';
