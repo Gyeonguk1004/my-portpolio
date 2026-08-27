@@ -170,18 +170,10 @@
   .mode-tab.active{ background:var(--navy); border-color:var(--navy); color:#fff; }
 
   .map-grid-wrap{ padding:20px 20px 4px; overflow-x:auto; }
-  .map-ocean{ position:relative; background:linear-gradient(180deg, #D6EFF7 0%, #ABE0EF 55%, #8FD1E6 100%); border-radius:20px; padding:24px 58px 24px 16px; overflow:hidden; width:max-content; margin:0 auto; }
-  .map-ocean::before{ content:""; position:absolute; inset:0; background-image:radial-gradient(circle, rgba(255,255,255,.45) 1.6px, transparent 1.6px); background-size:24px 24px; opacity:.6; pointer-events:none; }
-  .map-decor{ position:absolute; font-size:15px; opacity:.9; pointer-events:none; z-index:1; }
-  .map-grid{ display:grid; grid-template-columns:repeat(5, 58px); grid-auto-rows:58px; gap:5px; margin:0 auto; width:max-content; position:relative; z-index:2; }
+  .map-grid{ display:grid; grid-template-columns:repeat(5, 58px); grid-auto-rows:58px; gap:5px; margin:0 auto; width:max-content; }
   .map-cell{ border:1px solid var(--line); border-radius:9px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; font-weight:700; padding:2px; transition:background .2s ease; }
   .map-cell.active{ outline:2px solid var(--amber); outline-offset:1px; }
   .map-cell-count{ font-size:13px; font-weight:900; margin-top:1px; }
-  .map-island-group{ position:absolute; top:40px; right:14px; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:2; }
-  .map-island{ display:flex; flex-direction:column; align-items:center; gap:2px; }
-  .map-island-dot{ width:16px; height:16px; border-radius:50%; background:#D8B478; border:2px solid #AD8952; box-shadow:0 2px 3px rgba(0,0,0,.15); }
-  .map-island-dot.dokdo{ width:9px; height:9px; }
-  .map-island-label{ font-size:8.5px; font-weight:800; color:#5b4a2f; white-space:nowrap; }
 
   .portfolio-headline{ font-family:var(--sans); font-weight:800; font-size:16px; color:var(--ink); margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--line); }
   .portfolio-view-grid{ display:grid; grid-template-columns:auto 1fr; gap:7px 12px; align-items:baseline; }
@@ -1272,19 +1264,7 @@
       + '<div class="topbar" style="border-bottom:none;padding-bottom:4px;">'
       +   '<div class="brand"><h1 style="font-size:22px;">지원한 직장 지도</h1><p>지역별로 몇 곳에 지원했는지 한눈에 봐요</p></div>'
       + '</div>'
-      + '<div class="map-grid-wrap">'
-      +   '<div class="map-ocean">'
-      +     '<span class="map-decor" style="top:10px;left:14px;">🫧</span>'
-      +     '<span class="map-decor" style="bottom:14px;left:36px;">🐠</span>'
-      +     '<span class="map-decor" style="top:16px;left:120px;">🌊</span>'
-      +     '<span class="map-decor" style="bottom:18px;right:80px;">⛵</span>'
-      +     '<div class="map-grid">'+cellsHtml+'</div>'
-      +     '<div class="map-island-group">'
-      +       '<div class="map-island" title="울릉도"><div class="map-island-dot"></div><span class="map-island-label">울릉도</span></div>'
-      +       '<div class="map-island" title="독도"><div class="map-island-dot dokdo"></div><span class="map-island-label">독도</span></div>'
-      +     '</div>'
-      +   '</div>'
-      + '</div>'
+      + '<div class="map-grid-wrap"><div class="map-grid">'+cellsHtml+'</div></div>'
       + detailHtml;
   }
 
