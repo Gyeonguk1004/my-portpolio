@@ -169,16 +169,25 @@
   .mode-tab{ flex:1; background:#fff; border:1px solid var(--line); border-radius:10px; padding:9px 4px; font-size:12px; font-weight:600; color:var(--ink-soft); text-align:center; }
   .mode-tab.active{ background:var(--navy); border-color:var(--navy); color:#fff; }
 
-  .map-grid-wrap{ padding:10px 20px 4px; overflow-x:auto; }
-  .map-grid{ display:grid; grid-template-columns:repeat(5, 58px); grid-auto-rows:58px; gap:5px; margin:0 auto; width:max-content; }
+  .map-grid-wrap{ padding:20px 20px 4px; overflow-x:auto; }
+  .map-ocean{ position:relative; background:linear-gradient(180deg, #D6EFF7 0%, #ABE0EF 55%, #8FD1E6 100%); border-radius:20px; padding:24px 58px 24px 16px; overflow:hidden; width:max-content; margin:0 auto; }
+  .map-ocean::before{ content:""; position:absolute; inset:0; background-image:radial-gradient(circle, rgba(255,255,255,.45) 1.6px, transparent 1.6px); background-size:24px 24px; opacity:.6; pointer-events:none; }
+  .map-decor{ position:absolute; font-size:15px; opacity:.9; pointer-events:none; z-index:1; }
+  .map-grid{ display:grid; grid-template-columns:repeat(5, 58px); grid-auto-rows:58px; gap:5px; margin:0 auto; width:max-content; position:relative; z-index:2; }
   .map-cell{ border:1px solid var(--line); border-radius:9px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; font-weight:700; padding:2px; transition:background .2s ease; }
   .map-cell.active{ outline:2px solid var(--amber); outline-offset:1px; }
   .map-cell-count{ font-size:13px; font-weight:900; margin-top:1px; }
+  .map-island-group{ position:absolute; top:40px; right:14px; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:2; }
+  .map-island{ display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .map-island-dot{ width:16px; height:16px; border-radius:50%; background:#D8B478; border:2px solid #AD8952; box-shadow:0 2px 3px rgba(0,0,0,.15); }
+  .map-island-dot.dokdo{ width:9px; height:9px; }
+  .map-island-label{ font-size:8.5px; font-weight:800; color:#5b4a2f; white-space:nowrap; }
 
   .portfolio-headline{ font-family:var(--sans); font-weight:800; font-size:16px; color:var(--ink); margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--line); }
   .portfolio-view-grid{ display:grid; grid-template-columns:auto 1fr; gap:7px 12px; align-items:baseline; }
   .portfolio-view-label{ font-weight:800; color:var(--ink); font-size:13px; white-space:nowrap; }
   .portfolio-view-value{ color:var(--ink); font-weight:600; font-size:14px; }
+  .portfolio-chip{ display:inline-block; background:var(--navy); color:#fff; font-weight:700; font-size:12.5px; padding:4px 12px; border-radius:999px; }
 
   .profile-photo-circle{ width:96px; height:96px; border-radius:50%; margin:0 auto; background-size:cover; background-position:center; border:2px solid var(--line); }
   .profile-photo-placeholder{ display:flex; align-items:center; justify-content:center; background:var(--paper-deep); color:var(--ink-faint); }
@@ -433,6 +442,7 @@
     saveStatus: "idle",
     addError: "",
     newJobType: "",
+    newStatus: "in_progress",
     newEmploymentType: "",
     newSido: "",
     stageFeedbackOpen: {},
@@ -940,13 +950,20 @@
     var empSeg = ["regular","contract"].map(function(v){
       return '<button class="seg-btn'+(state.newEmploymentType===v?' active':'')+'" data-action="set-new-employment" data-val="'+v+'">'+employmentTypeLabel(v)+'</button>';
     }).join("");
+    var statusSeg = ["planned","in_progress","rejected","passed"].map(function(s){
+      return '<button class="seg-btn'+(state.newStatus===s?' active':'')+'" data-val="'+s+'" data-action="set-new-status" data-status="'+s+'">'+statusLabel(s)+'</button>';
+    }).join("");
     return ''
       + '<div class="header-row"><button class="btn-icon" data-action="go-list">← 목록으로</button><span></span></div>'
       + '<div class="section">'
       +   '<p class="eyebrow">새 지원</p>'
       +   '<div class="field"><label>회사명</label><input type="text" id="newCompany" placeholder="예: 한국전력기술(주)"></div>'
       +   '<div class="field"><label>직무</label><input type="text" id="newPosition" placeholder="예: 시스템설계직"></div>'
-      +   '<div class="field"><label>지원일</label><input type="date" id="newDate" value="'+todayStr()+'"></div>'
+      +   '<div class="field"><label>진행 상태</label><div class="segmented">'+statusSeg+'</div></div>'
+      +   '<div class="field-row">'
+      +     '<div class="field"><label>지원일</label><input type="date" id="newDate" value="'+todayStr()+'"></div>'
+      +     '<div class="field"><label>지원 마감일 (지원예정인 경우)</label><input type="date" id="newDeadline"></div>'
+      +   '</div>'
       +   '<div class="field-row">'
       +     '<div class="field"><label>시/도</label><select id="newSido" data-role="new-sido-select">'+sidoOptionsHtml(state.newSido)+'</select></div>'
       +     '<div class="field"><label>시/군/구</label><select id="newSigungu"'+(state.newSido?'':' disabled')+'>'+sigunguOptionsHtml(state.newSido, "")+'</select></div>'
@@ -1148,7 +1165,10 @@
       var val = entry[f.key];
       if(!val) return "";
       var displayVal = f.type === "date" ? fmtDate(val) : escapeHtml(val);
-      return '<span class="portfolio-view-label">'+escapeHtml(f.label)+'</span><span class="portfolio-view-value">'+displayVal+'</span>';
+      var valueHtml = f.type === "select"
+        ? '<span class="portfolio-chip">'+displayVal+'</span>'
+        : '<span class="portfolio-view-value">'+displayVal+'</span>';
+      return '<span class="portfolio-view-label">'+escapeHtml(f.label)+'</span>'+valueHtml;
     }).join("");
     rows = rows ? '<div class="portfolio-view-grid">'+rows+'</div>' : (headline ? "" : '<p class="hint" style="margin:0;">입력된 내용이 없어요.</p>');
     var fileRow = entry.fileUrl
@@ -1251,7 +1271,19 @@
       + '<div class="topbar" style="border-bottom:none;padding-bottom:4px;">'
       +   '<div class="brand"><h1 style="font-size:22px;">지원한 직장 지도</h1><p>지역별로 몇 곳에 지원했는지 한눈에 봐요</p></div>'
       + '</div>'
-      + '<div class="map-grid-wrap"><div class="map-grid">'+cellsHtml+'</div></div>'
+      + '<div class="map-grid-wrap">'
+      +   '<div class="map-ocean">'
+      +     '<span class="map-decor" style="top:10px;left:14px;">🫧</span>'
+      +     '<span class="map-decor" style="bottom:14px;left:36px;">🐠</span>'
+      +     '<span class="map-decor" style="top:16px;left:120px;">🌊</span>'
+      +     '<span class="map-decor" style="bottom:18px;right:80px;">⛵</span>'
+      +     '<div class="map-grid">'+cellsHtml+'</div>'
+      +     '<div class="map-island-group">'
+      +       '<div class="map-island" title="울릉도"><div class="map-island-dot"></div><span class="map-island-label">울릉도</span></div>'
+      +       '<div class="map-island" title="독도"><div class="map-island-dot dokdo"></div><span class="map-island-label">독도</span></div>'
+      +     '</div>'
+      +   '</div>'
+      + '</div>'
       + detailHtml;
   }
 
@@ -1373,7 +1405,7 @@
     else if(action === "forgot-password"){ requestPasswordReset(); }
     else if(action === "retry-auth"){ state.authTimedOut = false; initAuth(); }
     else if(action === "google-login"){ signInWithGoogle(); }
-    else if(action === "go-add"){ state.view = "add"; state.addError = ""; state.newJobType = ""; state.newEmploymentType = ""; state.newSido = ""; render(); }
+    else if(action === "go-add"){ state.view = "add"; state.addError = ""; state.newJobType = ""; state.newEmploymentType = ""; state.newSido = ""; state.newStatus = "in_progress"; render(); }
     else if(action === "go-list"){
       if(state.view === "detail" && state.saveStatus === "dirty") saveApps();
       state.view = "list"; render();
@@ -1453,11 +1485,15 @@
       var dateVal = document.getElementById("newDate").value || todayStr();
       if(!company || !position){ state.addError = "회사명과 직무는 꼭 입력해주세요."; render(); return; }
       var a = newApp(company, position, dateVal);
+      a.status = state.newStatus;
       a.jobType = state.newJobType; a.employmentType = state.newEmploymentType;
       var newSidoEl = document.getElementById("newSido");
       var newSigunguEl = document.getElementById("newSigungu");
       a.sido = newSidoEl ? newSidoEl.value : "";
       a.sigungu = newSigunguEl ? newSigunguEl.value : "";
+      var newDeadlineEl = document.getElementById("newDeadline");
+      a.deadline = newDeadlineEl ? newDeadlineEl.value : "";
+      if(a.status === "rejected" && !a.rejection.date){ a.rejection.date = todayStr(); }
       state.apps.push(a);
       state.addError = "";
       var then = el.getAttribute("data-then");
@@ -1468,6 +1504,7 @@
 
     else if(action === "set-new-jobtype"){ state.newJobType = el.getAttribute("data-val"); updateSegButtons(el.parentElement, state.newJobType); }
     else if(action === "set-new-employment"){ state.newEmploymentType = el.getAttribute("data-val"); updateSegButtons(el.parentElement, state.newEmploymentType); }
+    else if(action === "set-new-status"){ state.newStatus = el.getAttribute("data-status"); updateSegButtons(el.parentElement, state.newStatus); }
 
     else if(action === "set-jobtype"){
       var appJ = getApp(id);
