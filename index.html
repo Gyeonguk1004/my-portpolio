@@ -106,11 +106,14 @@
   .tag{ display:inline-block; font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; background:var(--paper-deep); color:var(--ink-soft); margin-right:6px; }
 
   .stamp{ flex:none; width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-family:var(--serif); font-weight:900; font-size:12px; letter-spacing:.5px; transform:rotate(-9deg); text-align:center; line-height:1.15; }
+    font-family:var(--serif); font-weight:900; font-size:22px; letter-spacing:.5px; transform:rotate(-9deg); text-align:center; line-height:1.15; }
   .stamp.passed{ border:3px double var(--sage); color:var(--sage); }
   .stamp.rejected{ border:3px double var(--wine); color:var(--wine); }
-  .stamp.in_progress{ border:2px dashed var(--amber); color:var(--amber); font-weight:700; }
-  .stamp-sm{ width:40px; height:40px; font-size:10px; }
+  .stamp.in_progress{ border:2px dashed var(--amber); color:var(--amber); font-weight:700; font-size:20px; }
+  .stamp.planned{ border:2px solid var(--navy); color:var(--navy); font-weight:900; font-size:13px; }
+  .stamp-sm{ width:40px; height:40px; font-size:16px; }
+  .stamp-sm.in_progress{ font-size:15px; }
+  .stamp-sm.planned{ font-size:10.5px; }
   @keyframes thud{ 0%{ transform:rotate(-9deg) scale(1.35); opacity:0; } 60%{ transform:rotate(-9deg) scale(.94); opacity:1; } 100%{ transform:rotate(-9deg) scale(1); } }
   .stamp.stamp-in{ animation: thud .4s ease; }
 
@@ -128,7 +131,7 @@
 
   .section{ padding:20px; border-bottom:1px solid var(--line); }
   .section:last-child{ border-bottom:none; }
-  .eyebrow{ font-size:11.5px; letter-spacing:.09em; color:var(--ink-faint); font-weight:700; text-transform:uppercase; margin:0 0 12px; }
+  .eyebrow{ font-size:12px; letter-spacing:.08em; color:var(--ink); font-weight:800; text-transform:uppercase; margin:0 0 12px; }
 
   .field{ margin-bottom:14px; }
   .field:last-child{ margin-bottom:0; }
@@ -151,6 +154,7 @@
   .seg-btn.active[data-val="in_progress"]{ background:var(--amber-soft); border-color:var(--amber); color:#8a611f; }
   .seg-btn.active[data-val="passed"]{ background:var(--sage-soft); border-color:var(--sage); color:var(--sage); }
   .seg-btn.active[data-val="rejected"]{ background:var(--wine-soft); border-color:var(--wine); color:var(--wine); }
+  .seg-btn.active[data-val="planned"]{ background:#DDE4EE; border-color:var(--navy); color:var(--navy); }
 
   .stage-item{ padding:10px 0; border-bottom:1px dashed var(--line); }
   .stage-item:last-of-type{ border-bottom:none; }
@@ -167,6 +171,13 @@
   .map-cell{ border:1px solid var(--line); border-radius:9px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; font-weight:700; padding:2px; transition:background .2s ease; }
   .map-cell.active{ outline:2px solid var(--amber); outline-offset:1px; }
   .map-cell-count{ font-size:13px; font-weight:900; margin-top:1px; }
+
+  .portfolio-view-grid{ display:grid; grid-template-columns:auto 1fr; gap:7px 12px; align-items:baseline; }
+  .portfolio-view-label{ font-weight:800; color:var(--ink); font-size:13px; white-space:nowrap; }
+  .portfolio-view-value{ color:var(--ink); font-weight:600; font-size:14px; }
+
+  .profile-photo-circle{ width:96px; height:96px; border-radius:50%; margin:0 auto; background-size:cover; background-position:center; border:2px solid var(--line); }
+  .profile-photo-placeholder{ display:flex; align-items:center; justify-content:center; background:var(--paper-deep); color:var(--ink-faint); }
   .stage-name{ flex:1.3; border:none; background:transparent; font-weight:600; font-size:14px; padding:6px 4px; border-radius:6px; }
   .stage-name:focus{ background:#fff; box-shadow:0 0 0 1px var(--line) inset; }
   .stage-date{ flex:1; border:1px solid var(--line); border-radius:7px; padding:6px 6px; font-size:12.5px; background:#fff; min-width:0; }
@@ -365,7 +376,7 @@
     ]}
   };
   function emptyPortfolio(){
-    var p = {};
+    var p = { profilePhotoUrl:"", profilePhotoName:"", profilePhotoPath:"" };
     PORTFOLIO_ORDER.forEach(function(cat){ p[cat] = []; });
     return p;
   }
@@ -413,7 +424,23 @@
   function fmtDate(iso){ if(!iso) return "날짜 미정"; var p = iso.split("-"); if(p.length<3) return iso; return p[0]+"."+p[1]+"."+p[2]; }
   function escapeHtml(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
   function getApp(id){ return state.apps.find(function(a){ return a.id === id; }); }
-  function statusLabel(s){ return s==="passed" ? "합격" : s==="rejected" ? "불합격" : "진행중"; }
+  function statusLabel(s){ return s==="planned" ? "지원예정" : s==="passed" ? "합격" : s==="rejected" ? "불합격" : "진행중"; }
+  function computeDday(deadline){
+    if(!deadline) return "D-?";
+    var today = new Date(todayStr()+"T00:00:00");
+    var target = new Date(deadline+"T00:00:00");
+    var diffDays = Math.round((target - today) / 86400000);
+    if(diffDays > 0) return "D-"+diffDays;
+    if(diffDays === 0) return "D-DAY";
+    return "마감";
+  }
+  function renderStatusStamp(a, sizeClass){
+    if(a.status === "planned"){
+      return '<div class="stamp '+sizeClass+' planned" title="지원예정">'+computeDday(a.deadline)+'</div>';
+    }
+    var icon = a.status === "passed" ? "✓" : a.status === "rejected" ? "✕" : "⋯";
+    return '<div class="stamp '+sizeClass+' '+a.status+'" title="'+statusLabel(a.status)+'">'+icon+'</div>';
+  }
   function stageResultLabel(r){ return r==="pass" ? "통과" : r==="fail" ? "탈락" : "대기중"; }
   function nextScheduleText(app){
     var pending = app.stages.filter(function(s){ return s.result === "pending" && s.date; });
@@ -431,6 +458,7 @@
       status: "in_progress",
       jobType: "", employmentType: "",
       sido: "", sigungu: "",
+      deadline: "",
       stages: [],
       rejection: { stageName:"", date:"", reason:"", memo:"" },
       coverLetters: [],
@@ -539,6 +567,43 @@
     if(!entry) return;
     var oldPath = entry.filePath;
     entry.fileUrl = ""; entry.fileName = ""; entry.filePath = "";
+    render(); savePortfolio();
+    if(oldPath && storage){
+      storage.ref().child(oldPath).delete().catch(function(){});
+    }
+  }
+
+  var PROFILE_PHOTO_MAX_BYTES = 5 * 1024 * 1024; // 5MB cap for profile photos
+  function handleProfilePhotoSelect(el){
+    var file = el.files && el.files[0];
+    if(!file) return;
+    if(!storage){ state.sdkError = "파일 저장소 연결이 준비되지 않았어요."; render(); return; }
+    if(!/^image\//.test(file.type)){ showToast("이미지 파일만 올릴 수 있어요."); return; }
+    if(file.size > PROFILE_PHOTO_MAX_BYTES){ showToast("사진이 너무 커요. 5MB 이하로 올려주세요."); return; }
+
+    state.portfolio.profilePhotoStatus = "uploading";
+    render();
+
+    var path = "users/" + state.firebaseUser.uid + "/profile/" + Date.now() + "-" + file.name;
+    storage.ref().child(path).put(file).then(function(snapshot){
+      return snapshot.ref.getDownloadURL();
+    }).then(function(url){
+      state.portfolio.profilePhotoUrl = url;
+      state.portfolio.profilePhotoName = file.name;
+      state.portfolio.profilePhotoPath = path;
+      state.portfolio.profilePhotoStatus = "";
+      render();
+      savePortfolio();
+    }).catch(function(err){
+      state.portfolio.profilePhotoStatus = "";
+      showToast(storageErrorMessage(err));
+      render();
+    });
+  }
+
+  function deleteProfilePhoto(){
+    var oldPath = state.portfolio.profilePhotoPath;
+    state.portfolio.profilePhotoUrl = ""; state.portfolio.profilePhotoName = ""; state.portfolio.profilePhotoPath = "";
     render(); savePortfolio();
     if(oldPath && storage){
       storage.ref().child(oldPath).delete().catch(function(){});
@@ -743,10 +808,10 @@
   }
 
   function renderList(){
-    var counts = { all: state.apps.length, in_progress:0, passed:0, rejected:0 };
+    var counts = { all: state.apps.length, planned:0, in_progress:0, passed:0, rejected:0 };
     state.apps.forEach(function(a){ counts[a.status] = (counts[a.status]||0)+1; });
 
-    var tabs = [["all","전체"],["in_progress","진행중"],["passed","합격"],["rejected","불합격"]].map(function(t){
+    var tabs = [["all","전체"],["planned","지원예정"],["in_progress","진행중"],["rejected","불합격"],["passed","합격"]].map(function(t){
       var active = state.filter === t[0];
       return '<button class="tab'+(active?' active':'')+'" data-action="set-filter" data-filter="'+t[0]+'">'+t[1]+' <span class="count">'+counts[t[0]]+'</span></button>';
     }).join("");
@@ -799,7 +864,7 @@
       +     '<p class="card-company">'+titleLine+'</p>'
       +     extraHtml
       +   '</div>'
-      +   '<div class="stamp stamp-sm '+a.status+'">'+statusLabel(a.status)+'</div>'
+      +   renderStatusStamp(a, "stamp-sm")
       + '</button>';
   }
 
@@ -833,7 +898,7 @@
 
   function renderDetail(a){
     if(!a) return '<div class="loading">기록을 찾을 수 없어요.</div>';
-    var seg = ["in_progress","passed","rejected"].map(function(s){
+    var seg = ["planned","in_progress","rejected","passed"].map(function(s){
       return '<button class="seg-btn'+(a.status===s?' active':'')+'" data-val="'+s+'" data-action="set-status" data-id="'+a.id+'" data-status="'+s+'">'+statusLabel(s)+'</button>';
     }).join("");
     var jobSeg = ["research","office"].map(function(v){
@@ -894,6 +959,7 @@
       +   '<div class="field"><label>회사명</label><input type="text" data-app="'+a.id+'" data-field="company" value="'+escapeHtml(a.company)+'"></div>'
       +   '<div class="field"><label>직무</label><input type="text" data-app="'+a.id+'" data-field="position" value="'+escapeHtml(a.position)+'"></div>'
       +   '<div class="field"><label>지원일</label><input type="date" data-app="'+a.id+'" data-field="appliedDate" value="'+escapeHtml(a.appliedDate||"")+'"></div>'
+      +   '<div class="field"><label>지원 마감일 (지원예정인 경우)</label><input type="date" data-app="'+a.id+'" data-field="deadline" value="'+escapeHtml(a.deadline||"")+'"></div>'
       +   '<div class="field-row">'
       +     '<div class="field"><label>시/도</label><select data-role="detail-sido-select" data-app="'+a.id+'">'+sidoOptionsHtml(a.sido)+'</select></div>'
       +     '<div class="field"><label>시/군/구</label><select id="sigungu-select-'+a.id+'" data-app="'+a.id+'" data-field="sigungu"'+(a.sido?'':' disabled')+'>'+sigunguOptionsHtml(a.sido, a.sigungu)+'</select></div>'
@@ -967,7 +1033,27 @@
       + '<div class="topbar" style="border-bottom:none;padding-bottom:4px;">'
       +   '<div class="brand"><h1 style="font-size:22px;">마이 포트폴리오</h1><p>학력·경력·자격증·어학·대외활동·학술대회·논문·수상을 한 곳에</p></div>'
       + '</div>'
+      + renderProfilePhotoSection()
       + sectionsHtml;
+  }
+
+  function renderProfilePhotoSection(){
+    var photo = state.portfolio.profilePhotoUrl;
+    var body;
+    if(state.portfolio.profilePhotoStatus === "uploading"){
+      body = '<div class="profile-photo-circle profile-photo-placeholder"><span class="hint" style="margin:0;">업로드 중...</span></div>';
+    } else if(photo){
+      body = ''
+        + '<div class="profile-photo-circle" style="background-image:url(\''+escapeHtml(photo)+'\');"></div>'
+        + '<button class="link-sm" data-action="delete-profile-photo" style="display:block;margin:8px auto 0;">사진 삭제</button>';
+    } else {
+      body = ''
+        + '<div class="profile-photo-circle profile-photo-placeholder"><span style="font-size:26px;">＋</span></div>'
+        + '<label class="link-sm" style="cursor:pointer;display:inline-block;margin-top:8px;">사진 올리기 (5MB 이하)'
+        +   '<input type="file" accept="image/*" data-profile-photo-upload="true" style="display:none;">'
+        + '</label>';
+    }
+    return '<div class="section" style="text-align:center;">' + body + '</div>';
   }
 
   function renderPortfolioCard(cat, schema, entry){
@@ -991,11 +1077,11 @@
       var val = entry[f.key];
       if(!val) return "";
       var displayVal = f.type === "date" ? fmtDate(val) : escapeHtml(val);
-      return '<p style="margin:0 0 6px;font-size:13.5px;"><span style="color:var(--ink-faint);">'+escapeHtml(f.label)+'</span> · '+displayVal+'</p>';
+      return '<span class="portfolio-view-label">'+escapeHtml(f.label)+'</span><span class="portfolio-view-value">'+displayVal+'</span>';
     }).join("");
-    if(!rows) rows = '<p class="hint" style="margin:0;">입력된 내용이 없어요.</p>';
+    rows = rows ? '<div class="portfolio-view-grid">'+rows+'</div>' : '<p class="hint" style="margin:0;">입력된 내용이 없어요.</p>';
     var fileRow = entry.fileUrl
-      ? '<p style="margin:6px 0 0;font-size:13px;"><a href="'+escapeHtml(entry.fileUrl)+'" target="_blank" rel="noopener" style="color:var(--navy);text-decoration:underline;">📎 '+escapeHtml(entry.fileName||"첨부파일")+'</a></p>'
+      ? '<p style="margin:8px 0 0;font-size:13px;"><a href="'+escapeHtml(entry.fileUrl)+'" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700;text-decoration:underline;">📎 '+escapeHtml(entry.fileName||"첨부파일")+'</a></p>'
       : "";
     return rows + fileRow;
   }
@@ -1160,6 +1246,10 @@
       if(sigunguSelEl) populateSigunguSelect(sigunguSelEl, el.value, "");
       return;
     }
+    if(el.getAttribute("data-profile-photo-upload")){
+      handleProfilePhotoSelect(el);
+      return;
+    }
     if(el.getAttribute("data-file-upload")){
       handlePortfolioFileSelect(el);
       return;
@@ -1254,6 +1344,7 @@
     else if(action === "delete-portfolio-file"){
       deletePortfolioFile(el.getAttribute("data-cat"), el.getAttribute("data-item"));
     }
+    else if(action === "delete-profile-photo"){ deleteProfilePhoto(); }
     else if(action === "toggle-portfolio-edit"){
       var tItem = el.getAttribute("data-item");
       if(state.portfolioEditing[tItem]) delete state.portfolioEditing[tItem];
