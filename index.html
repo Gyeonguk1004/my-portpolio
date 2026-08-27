@@ -175,6 +175,7 @@
   .map-cell.active{ outline:2px solid var(--amber); outline-offset:1px; }
   .map-cell-count{ font-size:13px; font-weight:900; margin-top:1px; }
 
+  .portfolio-headline{ font-family:var(--sans); font-weight:800; font-size:16px; color:var(--ink); margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--line); }
   .portfolio-view-grid{ display:grid; grid-template-columns:auto 1fr; gap:7px 12px; align-items:baseline; }
   .portfolio-view-label{ font-weight:800; color:var(--ink); font-size:13px; white-space:nowrap; }
   .portfolio-view-value{ color:var(--ink); font-weight:600; font-size:14px; }
@@ -272,22 +273,22 @@
   };
   var KOREA_SIDO_LIST = Object.keys(KOREA_REGIONS);
   var SIDO_GRID = [
-    {name:"강원특별자치도", short:"강원", row:0, col:2},
-    {name:"인천광역시", short:"인천", row:1, col:0},
-    {name:"서울특별시", short:"서울", row:1, col:1},
-    {name:"경기도", short:"경기", row:1, col:2},
-    {name:"충청남도", short:"충남", row:2, col:1},
-    {name:"충청북도", short:"충북", row:2, col:2},
-    {name:"경상북도", short:"경북", row:2, col:3},
-    {name:"세종특별자치시", short:"세종", row:3, col:1},
-    {name:"대전광역시", short:"대전", row:3, col:2},
-    {name:"대구광역시", short:"대구", row:3, col:3},
-    {name:"전북특별자치도", short:"전북", row:4, col:1},
-    {name:"울산광역시", short:"울산", row:4, col:3},
-    {name:"전남광주통합특별시", short:"전남광주", row:5, col:1},
-    {name:"경상남도", short:"경남", row:5, col:3},
-    {name:"부산광역시", short:"부산", row:5, col:4},
-    {name:"제주특별자치도", short:"제주", row:7, col:2}
+    {name:"인천광역시", short:"인천", row:0, col:0},
+    {name:"서울특별시", short:"서울", row:0, col:1},
+    {name:"경기도", short:"경기", row:0, col:2},
+    {name:"강원특별자치도", short:"강원", row:0, col:3},
+    {name:"충청남도", short:"충남", row:1, col:1},
+    {name:"충청북도", short:"충북", row:1, col:2},
+    {name:"경상북도", short:"경북", row:1, col:3},
+    {name:"세종특별자치시", short:"세종", row:2, col:1},
+    {name:"대전광역시", short:"대전", row:2, col:2},
+    {name:"대구광역시", short:"대구", row:2, col:3},
+    {name:"전북특별자치도", short:"전북", row:3, col:1},
+    {name:"경상남도", short:"경남", row:3, col:3},
+    {name:"울산광역시", short:"울산", row:3, col:4},
+    {name:"전남광주통합특별시", short:"전남광주", row:4, col:1},
+    {name:"부산광역시", short:"부산", row:4, col:3},
+    {name:"제주특별자치도", short:"제주", row:6, col:2}
   ];
   function sidoOptionsHtml(selected){
     return '<option value="">선택</option>' + KOREA_SIDO_LIST.map(function(s){
@@ -315,7 +316,9 @@
 
   var PORTFOLIO_ORDER = ["education","career","certificates","languages","activities","conferences","publications","awards"];
   var PORTFOLIO_SCHEMAS = {
-    education: { label:"학력", fields: function(entry){
+    education: { label:"학력", headlineKeys:["degree","school"], headline: function(entry){
+        return [entry.degree, entry.school].filter(Boolean).join(" · ") || "새 학력";
+      }, fields: function(entry){
       var fields = [
         {key:"degree", label:"학위", type:"select", options:["고등학교","전문학사","학사","석사","박사"]}
       ];
@@ -331,25 +334,33 @@
       fields.push({key:"note", label:"비고 (선택)", type:"text", placeholder:"예: 학점 4.2/4.5"});
       return fields;
     }},
-    career: { label:"경력", fields:[
+    career: { label:"경력", headlineKeys:["org","position"], headline: function(entry){
+        return [entry.org, entry.position].filter(Boolean).join(" · ") || "새 경력";
+      }, fields:[
       {key:"org", label:"기관/회사명", type:"text", placeholder:"예: 한국환경연구원"},
       {key:"position", label:"직무/직급", type:"text", placeholder:"예: 위촉연구원"},
       {key:"startDate", label:"시작일", type:"date"},
       {key:"endDate", label:"종료일 (재직 중이면 비워두기)", type:"date"},
       {key:"description", label:"주요 업무 (선택)", type:"textarea", placeholder:"담당 업무를 간단히 적어주세요"}
     ]},
-    certificates: { label:"자격증", fields:[
+    certificates: { label:"자격증", headlineKeys:["name"], headline: function(entry){
+        return entry.name || "새 자격증";
+      }, fields:[
       {key:"name", label:"자격증명", type:"text", placeholder:"예: 정보처리기사"},
       {key:"org", label:"발급기관", type:"text", placeholder:"예: 한국산업인력공단"},
       {key:"date", label:"취득일", type:"date"},
       {key:"number", label:"자격증 번호 (선택)", type:"text"}
     ]},
-    languages: { label:"어학", fields:[
+    languages: { label:"어학", headlineKeys:["test","score"], headline: function(entry){
+        return [entry.test, entry.score].filter(Boolean).join(" · ") || "새 어학";
+      }, fields:[
       {key:"test", label:"시험명", type:"text", placeholder:"예: TOEIC, OPIc, TOEFL"},
       {key:"score", label:"점수/등급", type:"text", placeholder:"예: 900점, IH"},
       {key:"date", label:"취득일", type:"date"}
     ]},
-    activities: { label:"대외활동", fields:[
+    activities: { label:"대외활동", headlineKeys:["name"], headline: function(entry){
+        return entry.name || "새 활동";
+      }, fields:[
       {key:"name", label:"활동명", type:"text", placeholder:"예: OO 서포터즈"},
       {key:"org", label:"주관기관", type:"text"},
       {key:"role", label:"역할 (선택)", type:"text", placeholder:"예: 팀장, 팀원"},
@@ -357,21 +368,27 @@
       {key:"endDate", label:"종료일", type:"date"},
       {key:"description", label:"내용 (선택)", type:"textarea"}
     ]},
-    conferences: { label:"학술대회", fields:[
+    conferences: { label:"학술대회", headlineKeys:["title"], headline: function(entry){
+        return entry.title || entry.name || "새 학술대회";
+      }, fields:[
       {key:"name", label:"학회/대회명", type:"text", placeholder:"예: 대한전기학회 하계학술대회"},
       {key:"title", label:"발표(논문) 제목", type:"text"},
       {key:"role", label:"역할", type:"select", options:["구두발표","포스터발표","공동저자","참관"]},
       {key:"date", label:"날짜", type:"date"},
       {key:"location", label:"장소 (선택)", type:"text"}
     ]},
-    publications: { label:"논문/출판물", fields:[
+    publications: { label:"논문/출판물", headlineKeys:["title"], headline: function(entry){
+        return entry.title || "새 논문";
+      }, fields:[
       {key:"title", label:"제목", type:"text"},
       {key:"venue", label:"게재 저널/학술지", type:"text"},
       {key:"role", label:"역할 (선택)", type:"text", placeholder:"예: 제1저자, 교신저자, 공저자"},
       {key:"date", label:"게재일", type:"date"},
       {key:"note", label:"비고 (선택)", type:"text", placeholder:"DOI, 발행 상태 등"}
     ]},
-    awards: { label:"수상", fields:[
+    awards: { label:"수상", headlineKeys:["name"], headline: function(entry){
+        return entry.name || "새 수상";
+      }, fields:[
       {key:"name", label:"수상명", type:"text", placeholder:"예: 우수논문상"},
       {key:"org", label:"수여기관", type:"text"},
       {key:"date", label:"수상일", type:"date"},
@@ -1096,8 +1113,9 @@
         + '<button class="link-sm" data-action="delete-profile-photo" style="display:block;margin:8px auto 0;">사진 삭제</button>';
     } else {
       body = ''
-        + '<div class="profile-photo-circle profile-photo-placeholder"><span style="font-size:26px;">＋</span></div>'
-        + '<label class="link-sm" style="cursor:pointer;display:inline-block;margin-top:8px;">사진 올리기 (5MB 이하)'
+        + '<label style="cursor:pointer;display:block;">'
+        +   '<div class="profile-photo-circle profile-photo-placeholder"><span style="font-size:26px;">＋</span></div>'
+        +   '<span class="link-sm" style="display:inline-block;margin-top:8px;">사진 올리기 (5MB 이하)</span>'
         +   '<input type="file" accept="image/*" data-profile-photo-upload="true" style="display:none;">'
         + '</label>';
     }
@@ -1121,17 +1139,22 @@
   }
 
   function renderPortfolioCardView(schema, entry){
-    var rows = schemaFields(schema, entry).map(function(f){
+    var headlineKeys = schema.headlineKeys || [];
+    var headline = schema.headline ? schema.headline(entry) : "";
+    var headlineHtml = headline ? '<p class="portfolio-headline">'+escapeHtml(headline)+'</p>' : "";
+    var rows = schemaFields(schema, entry).filter(function(f){
+      return headlineKeys.indexOf(f.key) === -1;
+    }).map(function(f){
       var val = entry[f.key];
       if(!val) return "";
       var displayVal = f.type === "date" ? fmtDate(val) : escapeHtml(val);
       return '<span class="portfolio-view-label">'+escapeHtml(f.label)+'</span><span class="portfolio-view-value">'+displayVal+'</span>';
     }).join("");
-    rows = rows ? '<div class="portfolio-view-grid">'+rows+'</div>' : '<p class="hint" style="margin:0;">입력된 내용이 없어요.</p>';
+    rows = rows ? '<div class="portfolio-view-grid">'+rows+'</div>' : (headline ? "" : '<p class="hint" style="margin:0;">입력된 내용이 없어요.</p>');
     var fileRow = entry.fileUrl
       ? '<p style="margin:8px 0 0;font-size:13px;"><a href="'+escapeHtml(entry.fileUrl)+'" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700;text-decoration:underline;">📎 '+escapeHtml(entry.fileName||"첨부파일")+'</a></p>'
       : "";
-    return rows + fileRow;
+    return headlineHtml + rows + fileRow;
   }
 
   function renderPortfolioCardEdit(cat, schema, entry){
