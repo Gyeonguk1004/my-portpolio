@@ -407,6 +407,7 @@
     firebaseUser: null,
     loginError: "",
     sdkError: "",
+    authTimedOut: false,
     mode: "jobs",
     view: "list",
     filter: "all",
@@ -694,30 +695,56 @@
       state.sdkError = "Firebase 라이브러리를 불러오지 못했어요. 이 화면(미리보기) 안이 아니라 실제 브라우저 탭에서 파일을 열어주세요.";
       render(); return;
     }
-    try{
-      firebase.initializeApp(FIREBASE_CONFIG);
-      auth = firebase.auth();
-      db = firebase.firestore();
-      storage = firebase.storage();
-    }catch(e){
-      state.loading = false;
-      state.sdkError = "Firebase 초기화에 실패했어요: " + (e && e.message ? e.message : "알 수 없는 오류");
-      render(); return;
+    if(!auth){
+      try{
+        firebase.initializeApp(FIREBASE_CONFIG);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        storage = firebase.storage();
+      }catch(e){
+        state.loading = false;
+        state.sdkError = "Firebase 초기화에 실패했어요: " + (e && e.message ? e.message : "알 수 없는 오류");
+        render(); return;
+      }
     }
-    state.loading = true; render();
+    state.loading = true; state.authTimedOut = false; render();
+
+    var authTimeout = setTimeout(function(){
+      state.loading = false;
+      state.authTimedOut = true;
+      render();
+    }, 9000);
+
     auth.onAuthStateChanged(function(user){
+      clearTimeout(authTimeout);
       if(user){
         state.firebaseUser = user;
         state.userId = user.email;
+        var dataTimeout = setTimeout(function(){
+          state.loading = false;
+          state.authTimedOut = true;
+          render();
+        }, 9000);
         loadUserData(user.uid).then(function(data){
+          clearTimeout(dataTimeout);
           state.apps = data.applications || [];
           state.portfolio = data.portfolio || emptyPortfolio();
-          state.authed = true; state.loading = false; state.view = "list";
+          state.authed = true; state.loading = false; state.authTimedOut = false; state.view = "list";
+          render();
+        }).catch(function(){
+          clearTimeout(dataTimeout);
+          state.loading = false;
+          state.authTimedOut = true;
           render();
         });
       } else {
-        state.authed = false; state.loading = false; render();
+        state.authed = false; state.loading = false; state.authTimedOut = false; render();
       }
+    }, function(){
+      clearTimeout(authTimeout);
+      state.loading = false;
+      state.authTimedOut = true;
+      render();
     });
   }
 
@@ -765,6 +792,7 @@
     var root = document.getElementById("app");
     if(!CONFIG_READY){ root.innerHTML = renderSetupNeeded(); renderModal(); return; }
     if(state.sdkError){ root.innerHTML = renderSdkError(); renderModal(); return; }
+    if(state.authTimedOut){ root.innerHTML = renderAuthTimeout(); renderModal(); return; }
     if(state.loading){ root.innerHTML = '<div class="loading">'+(state.authed ? '지원 기록을 불러오는 중...' : '로그인 확인 중...')+'</div>'; renderModal(); return; }
     if(!state.authed){ root.innerHTML = renderLogin(); renderModal(); return; }
     if(state.mode === "portfolio"){ root.innerHTML = renderModeNav() + renderPortfolio(); renderModal(); updateSaveIndicator(); return; }
@@ -783,6 +811,16 @@
       +   '<p class="login-sub">연결에 문제가 생겼어요</p>'
       +   '<p class="error-text">'+escapeHtml(state.sdkError)+'</p>'
       +   '<p class="hint" style="margin-top:14px;">주소창이 보이는 실제 브라우저 탭에서 이 파일을 열어보세요 (공유 메뉴의 "브라우저에서 열기" 등을 이용해주세요). 그래도 안 되면 화면을 캡처해서 알려주세요.</p>'
+      + '</div></div>';
+  }
+
+  function renderAuthTimeout(){
+    return ''
+      + '<div class="login-wrap"><div class="login-box">'
+      +   '<h1 class="login-title">지원노트</h1>'
+      +   '<p class="login-sub">연결이 오래 걸리고 있어요</p>'
+      +   '<p class="hint">인터넷 연결을 확인해주세요. 광고 차단 확장 프로그램이나 회사·학교 네트워크가 로그인 요청을 막고 있을 수도 있어요 — 잠시 꺼두고 다시 시도해보세요.</p>'
+      +   '<button class="btn btn-primary" data-action="retry-auth" style="width:100%;margin-top:14px;">다시 시도</button>'
       + '</div></div>';
   }
 
@@ -1310,6 +1348,7 @@
     }
     else if(action === "logout"){ doLogout(); }
     else if(action === "forgot-password"){ requestPasswordReset(); }
+    else if(action === "retry-auth"){ state.authTimedOut = false; initAuth(); }
     else if(action === "google-login"){ signInWithGoogle(); }
     else if(action === "go-add"){ state.view = "add"; state.addError = ""; state.newJobType = ""; state.newEmploymentType = ""; state.newSido = ""; render(); }
     else if(action === "go-list"){
