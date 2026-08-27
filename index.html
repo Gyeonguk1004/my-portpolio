@@ -727,6 +727,7 @@
         firebase.initializeApp(FIREBASE_CONFIG);
         auth = firebase.auth();
         db = firebase.firestore();
+        try{ db.settings({ experimentalAutoDetectLongPolling: true }); }catch(e){}
         storage = firebase.storage();
       }catch(e){
         state.loading = false;
