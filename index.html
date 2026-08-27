@@ -105,15 +105,18 @@
   .tag-row{ margin:2px 0 8px; }
   .tag{ display:inline-block; font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; background:var(--paper-deep); color:var(--ink-soft); margin-right:6px; }
 
-  .stamp{ flex:none; width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-family:var(--serif); font-weight:900; font-size:22px; letter-spacing:.5px; transform:rotate(-9deg); text-align:center; line-height:1.15; }
+  .stamp{ flex:none; width:60px; height:60px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    font-family:var(--serif); font-weight:900; letter-spacing:.5px; transform:rotate(-9deg); text-align:center; line-height:1.1; }
+  .stamp-icon{ font-size:20px; line-height:1; }
+  .stamp-label{ font-size:10px; font-weight:800; line-height:1; }
   .stamp.passed{ border:3px double var(--sage); color:var(--sage); }
   .stamp.rejected{ border:3px double var(--wine); color:var(--wine); }
-  .stamp.in_progress{ border:2px dashed var(--amber); color:var(--amber); font-weight:700; font-size:20px; }
-  .stamp.planned{ border:2px solid var(--navy); color:var(--navy); font-weight:900; font-size:13px; }
-  .stamp-sm{ width:40px; height:40px; font-size:16px; }
-  .stamp-sm.in_progress{ font-size:15px; }
-  .stamp-sm.planned{ font-size:10.5px; }
+  .stamp.in_progress{ border:3px dashed var(--amber); color:var(--amber); font-weight:800; }
+  .stamp.planned{ border:3px solid var(--navy); color:var(--navy); font-weight:900; font-size:15px; }
+  .stamp-sm{ width:50px; height:50px; }
+  .stamp-sm .stamp-icon{ font-size:17px; }
+  .stamp-sm .stamp-label{ font-size:8.5px; }
+  .stamp-sm.planned{ font-size:12px; }
   @keyframes thud{ 0%{ transform:rotate(-9deg) scale(1.35); opacity:0; } 60%{ transform:rotate(-9deg) scale(.94); opacity:1; } 100%{ transform:rotate(-9deg) scale(1); } }
   .stamp.stamp-in{ animation: thud .4s ease; }
 
@@ -439,7 +442,10 @@
       return '<div class="stamp '+sizeClass+' planned" title="지원예정">'+computeDday(a.deadline)+'</div>';
     }
     var icon = a.status === "passed" ? "✓" : a.status === "rejected" ? "✕" : "⋯";
-    return '<div class="stamp '+sizeClass+' '+a.status+'" title="'+statusLabel(a.status)+'">'+icon+'</div>';
+    return '<div class="stamp '+sizeClass+' '+a.status+'" title="'+statusLabel(a.status)+'">'
+      + '<span class="stamp-icon">'+icon+'</span>'
+      + '<span class="stamp-label">'+statusLabel(a.status)+'</span>'
+      + '</div>';
   }
   function stageResultLabel(r){ return r==="pass" ? "통과" : r==="fail" ? "탈락" : "대기중"; }
   function nextScheduleText(app){
@@ -817,7 +823,11 @@
     }).join("");
 
     var filtered = state.apps.filter(function(a){ return state.filter === "all" || a.status === state.filter; });
-    filtered.sort(function(a,b){ return (b.appliedDate||"").localeCompare(a.appliedDate||"") || b.createdAt-a.createdAt; });
+    if(state.filter === "planned"){
+      filtered.sort(function(a,b){ return (a.deadline||"9999-99-99").localeCompare(b.deadline||"9999-99-99"); });
+    } else {
+      filtered.sort(function(a,b){ return (b.appliedDate||"").localeCompare(a.appliedDate||"") || b.createdAt-a.createdAt; });
+    }
 
     var listHtml;
     if(state.apps.length === 0){
