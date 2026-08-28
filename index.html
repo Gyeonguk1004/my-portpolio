@@ -159,10 +159,8 @@
   .seg-btn.active[data-val="rejected"]{ background:var(--wine-soft); border-color:var(--wine); color:var(--wine); }
   .seg-btn.active[data-val="planned"]{ background:#DDE4EE; border-color:var(--navy); color:var(--navy); }
 
-  .stage-item{ padding:10px 0; border-bottom:1px dashed var(--line); }
-  .stage-item:last-of-type{ border-bottom:none; }
-  .stage-row{ display:flex; align-items:center; gap:8px; }
-  .stage-feedback-wrap{ margin-top:6px; }
+  .stage-header{ display:flex; align-items:center; gap:8px; margin-bottom:2px; }
+  .stage-feedback-wrap{ margin-top:10px; }
   .stage-feedback{ width:100%; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; line-height:1.5; resize:vertical; background:#fff; }
 
   .mode-nav{ display:flex; gap:6px; padding:14px 20px 0; }
@@ -179,14 +177,12 @@
   .portfolio-view-grid{ display:grid; grid-template-columns:auto 1fr; gap:7px 12px; align-items:baseline; }
   .portfolio-view-label{ font-weight:800; color:var(--ink); font-size:13px; white-space:nowrap; }
   .portfolio-view-value{ color:var(--ink); font-weight:600; font-size:14px; }
-  .portfolio-chip{ display:inline-block; background:var(--navy); color:#fff; font-weight:700; font-size:12.5px; padding:4px 12px; border-radius:999px; }
+  .portfolio-chip{ display:inline-block; background:#E2E7F1; color:var(--navy); font-weight:700; font-size:12.5px; padding:4px 12px; border-radius:999px; }
 
   .profile-photo-circle{ width:96px; height:96px; border-radius:50%; margin:0 auto; background-size:cover; background-position:center; border:2px solid var(--line); }
   .profile-photo-placeholder{ display:flex; align-items:center; justify-content:center; background:var(--paper-deep); color:var(--ink-faint); }
-  .stage-name{ flex:1.3; border:none; background:transparent; font-weight:600; font-size:14px; padding:6px 4px; border-radius:6px; }
+  .stage-name{ flex:1; border:none; background:transparent; font-weight:700; font-size:15px; padding:6px 4px; border-radius:6px; }
   .stage-name:focus{ background:#fff; box-shadow:0 0 0 1px var(--line) inset; }
-  .stage-date{ flex:1; border:1px solid var(--line); border-radius:7px; padding:6px 6px; font-size:12.5px; background:#fff; min-width:0; }
-  .stage-result{ flex:.9; border:1px solid var(--line); border-radius:7px; padding:6px 4px; font-size:12.5px; background:#fff; }
   .chip-row{ display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
   .chip{ border:1px dashed var(--line); background:transparent; color:var(--ink-soft); padding:6px 11px; border-radius:999px; font-size:12.5px; }
   .chip:hover{ border-color:var(--navy); color:var(--navy); }
@@ -485,6 +481,7 @@
       jobType: "", employmentType: "",
       sido: "", sigungu: "",
       deadline: "",
+      postingUrl: "",
       stages: [],
       rejection: { stageName:"", date:"", reason:"", memo:"" },
       coverLetters: [],
@@ -957,6 +954,7 @@
       +     '<div class="field"><label>지원일</label><input type="date" id="newDate" value="'+todayStr()+'"></div>'
       +     '<div class="field"><label>지원 마감일 (지원예정인 경우)</label><input type="date" id="newDeadline"></div>'
       +   '</div>'
+      +   '<div class="field"><label>채용공고 링크 (선택)</label><input type="url" id="newPostingUrl" placeholder="https://..."></div>'
       +   '<div class="field-row">'
       +     '<div class="field"><label>시/도</label><select id="newSido" data-role="new-sido-select">'+sidoOptionsHtml(state.newSido)+'</select></div>'
       +     '<div class="field"><label>시/군/구</label><select id="newSigungu"'+(state.newSido?'':' disabled')+'>'+sigunguOptionsHtml(state.newSido, "")+'</select></div>'
@@ -989,20 +987,25 @@
         ? '<textarea class="stage-feedback" rows="2" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="feedback" placeholder="이 단계에서 느낀 점을 자유롭게 적어보세요 (선택)">'+escapeHtml(st.feedback||"")+'</textarea>'
         : '<button class="chip" data-action="toggle-stage-feedback" data-stage="'+st.id+'">+ 느낀 점 추가</button>';
       return ''
-        + '<div class="stage-item">'
-        +   '<div class="stage-row">'
+        + '<div class="cl-block">'
+        +   '<div class="stage-header">'
         +     '<input class="stage-name" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="name" value="'+escapeHtml(st.name)+'">'
-        +     '<input class="stage-date" type="date" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="date" value="'+escapeHtml(st.date||"")+'">'
-        +     '<select class="stage-result" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="result">'
-        +       ["pending","pass","fail"].map(function(r){ return '<option value="'+r+'"'+(st.result===r?" selected":"")+'>'+stageResultLabel(r)+'</option>'; }).join("")
-        +     '</select>'
         +     '<button class="btn-icon" data-action="delete-stage" data-id="'+a.id+'" data-stage="'+st.id+'" title="삭제">×</button>'
         +   '</div>'
+        +   '<div class="field"><label>결과</label><select data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="result">'
+        +     ["pending","pass","fail"].map(function(r){ return '<option value="'+r+'"'+(st.result===r?" selected":"")+'>'+stageResultLabel(r)+'</option>'; }).join("")
+        +   '</select></div>'
+        +   '<div class="field-row">'
+        +     '<div class="field"><label>시작일</label><input type="date" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="date" value="'+escapeHtml(st.date||"")+'"></div>'
+        +     '<div class="field"><label>종료일</label><input type="date" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="endDate" value="'+escapeHtml(st.endDate||"")+'"></div>'
+        +   '</div>'
+        +   '<div class="field"><label>합격자 발표일</label><input type="date" data-app="'+a.id+'" data-arr="stages" data-item="'+st.id+'" data-field="announceDate" value="'+escapeHtml(st.announceDate||"")+'"></div>'
         +   '<div class="stage-feedback-wrap">'+feedbackHtml+'</div>'
         + '</div>';
     }).join("");
 
-    var chipRow = STAGE_PRESETS.map(function(p){
+    var existingStageNames = a.stages.map(function(st){ return st.name; });
+    var chipRow = STAGE_PRESETS.filter(function(p){ return existingStageNames.indexOf(p) === -1; }).map(function(p){
       return '<button class="chip" data-action="add-stage-preset" data-id="'+a.id+'" data-name="'+escapeHtml(p)+'">+ '+p+'</button>';
     }).join("") + '<button class="chip" data-action="add-stage-custom" data-id="'+a.id+'">+ 직접 입력</button>';
 
@@ -1035,6 +1038,7 @@
       +   '<div class="field"><label>직무</label><input type="text" data-app="'+a.id+'" data-field="position" value="'+escapeHtml(a.position)+'"></div>'
       +   '<div class="field"><label>지원일</label><input type="date" data-app="'+a.id+'" data-field="appliedDate" value="'+escapeHtml(a.appliedDate||"")+'"></div>'
       +   '<div class="field"><label>지원 마감일 (지원예정인 경우)</label><input type="date" data-app="'+a.id+'" data-field="deadline" value="'+escapeHtml(a.deadline||"")+'"></div>'
+      +   '<div class="field"><label>채용공고 링크 (선택)</label><input type="url" data-app="'+a.id+'" data-field="postingUrl" placeholder="https://..." value="'+escapeHtml(a.postingUrl||"")+'"></div>'
       +   '<div class="field-row">'
       +     '<div class="field"><label>시/도</label><select data-role="detail-sido-select" data-app="'+a.id+'">'+sidoOptionsHtml(a.sido)+'</select></div>'
       +     '<div class="field"><label>시/군/구</label><select id="sigungu-select-'+a.id+'" data-app="'+a.id+'" data-field="sigungu"'+(a.sido?'':' disabled')+'>'+sigunguOptionsHtml(a.sido, a.sigungu)+'</select></div>'
@@ -1474,6 +1478,8 @@
       a.sigungu = newSigunguEl ? newSigunguEl.value : "";
       var newDeadlineEl = document.getElementById("newDeadline");
       a.deadline = newDeadlineEl ? newDeadlineEl.value : "";
+      var newPostingUrlEl = document.getElementById("newPostingUrl");
+      a.postingUrl = newPostingUrlEl ? newPostingUrlEl.value.trim() : "";
       if(a.status === "rejected" && !a.rejection.date){ a.rejection.date = todayStr(); }
       state.apps.push(a);
       state.addError = "";
@@ -1515,14 +1521,14 @@
     else if(action === "add-stage-preset"){
       var app2 = getApp(id);
       if(!app2) return;
-      app2.stages.push({ id: uid(), name: el.getAttribute("data-name"), date: todayStr(), result: "pending", feedback: "" });
+      app2.stages.push({ id: uid(), name: el.getAttribute("data-name"), date: todayStr(), endDate: "", announceDate: "", result: "pending", feedback: "" });
       app2.updatedAt = Date.now();
       render(); saveApps();
     }
     else if(action === "add-stage-custom"){
       var app3 = getApp(id);
       if(!app3) return;
-      app3.stages.push({ id: uid(), name: "새 단계", date: todayStr(), result: "pending", feedback: "" });
+      app3.stages.push({ id: uid(), name: "새 단계", date: todayStr(), endDate: "", announceDate: "", result: "pending", feedback: "" });
       app3.updatedAt = Date.now();
       render(); saveApps();
     }
