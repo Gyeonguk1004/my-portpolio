@@ -175,9 +175,8 @@
 
   .portfolio-headline{ font-family:var(--sans); font-weight:800; font-size:16px; color:var(--ink); margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--line); }
   .portfolio-view-grid{ display:grid; grid-template-columns:auto 1fr; gap:7px 12px; align-items:baseline; }
-  .portfolio-view-label{ font-weight:800; color:var(--ink); font-size:13px; white-space:nowrap; }
+  .portfolio-view-label{ display:inline-block; background:#E2E7F1; color:var(--navy); font-weight:700; font-size:12px; padding:4px 10px; border-radius:999px; white-space:nowrap; }
   .portfolio-view-value{ color:var(--ink); font-weight:600; font-size:14px; }
-  .portfolio-chip{ display:inline-block; background:#E2E7F1; color:var(--navy); font-weight:700; font-size:12.5px; padding:4px 12px; border-radius:999px; }
 
   .profile-photo-circle{ width:96px; height:96px; border-radius:50%; margin:0 auto; background-size:cover; background-position:center; border:2px solid var(--line); }
   .profile-photo-placeholder{ display:flex; align-items:center; justify-content:center; background:var(--paper-deep); color:var(--ink-faint); }
@@ -1162,10 +1161,7 @@
       var val = entry[f.key];
       if(!val) return "";
       var displayVal = f.type === "date" ? fmtDate(val) : escapeHtml(val);
-      var valueHtml = f.type === "select"
-        ? '<span class="portfolio-chip">'+displayVal+'</span>'
-        : '<span class="portfolio-view-value">'+displayVal+'</span>';
-      return '<span class="portfolio-view-label">'+escapeHtml(f.label)+'</span>'+valueHtml;
+      return '<span class="portfolio-view-label">'+escapeHtml(f.label)+'</span><span class="portfolio-view-value">'+displayVal+'</span>';
     }).join("");
     rows = rows ? '<div class="portfolio-view-grid">'+rows+'</div>' : (headline ? "" : '<p class="hint" style="margin:0;">입력된 내용이 없어요.</p>');
     var fileRow = entry.fileUrl
